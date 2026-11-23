@@ -1,0 +1,5 @@
+model,MAE (C),RMSE (C),R2
+Baseline (persistence),0.882,1.233,0.867
+Ridge Regression,0.876,1.164,0.882
+Random Forest,0.864,1.172,0.88
+Gradient Boosting,0.87,1.171,0.88
