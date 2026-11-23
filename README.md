@@ -1,70 +1,101 @@
-# Weather Prediction for Hyderabad (Rain and Temperature Forecasting)
+## Weather Prediction for Hyderabad
 
-Machine learning pipeline that predicts **(1) whether it will rain tomorrow** and **(2) tomorrow's maximum temperature** for Hyderabad, India, using 11 years (2015-2025) of daily weather data from the free [Open-Meteo](https://open-meteo.com/) archive API.
+I made this project to learn how machine learning works on real weather data. It does two things:
 
-## Why this project
-- Full data science workflow: data collection, cleaning, EDA, feature engineering, modelling, evaluation, interpretation
-- Uses a **time-based train/test split** and **persistence baselines** to avoid the common mistakes of leakage and inflated scores
-- Reproducible: one notebook, pinned dependencies, cached data
+1. Predicts if it will rain tomorrow (yes or no).
+2. Predicts tomorrow's highest temperature.
+
+You can run the whole thing on Google Colab: [Open the notebook in Colab](https://colab.research.google.com/github/Nithishh2026/Weather-prediction/blob/main/notebooks/weather_prediction.ipynb)
+
+## About the data
+
+I got the data from [Open-Meteo](https://open-meteo.com/). It is free and you do not need to sign up. I downloaded hourly weather for Hyderabad from 2015 to 2025 and turned it into daily data.
+
+The data has temperature, humidity, rain, air pressure, wind and cloud cover. I counted a day as rainy if it had 1 mm or more of rain. About 30 out of every 100 days were rainy.
+
+## What I did
+
+1. Downloaded the data and made it daily.
+2. Checked for missing values and filled the small gaps.
+3. Made charts to understand the data. They are in the `outputs` folder.
+4. Made new columns from the data, like the last 3 days' values, 3 day and 7 day averages, the change in pressure, and the time of year.
+5. Split the data by date. I trained on 2015 to 2022 and tested on 2023 to 2025. I did not mix the dates, because then the model would see the future.
+6. Made a simple baseline: "tomorrow will be the same as today". A model is only useful if it does better than this.
+7. Trained three models: Logistic Regression (Ridge for temperature), Random Forest and Gradient Boosting.
+8. Compared all of them on the test years.
 
 ## Results
-> Fill this table in with your real numbers after running the notebook. Do not leave placeholders in the published version.
 
-| Task | Baseline (persistence) | Best model | Metric |
-|------|------------------------|------------|--------|
-| Rain tomorrow (classification) | _F1 = ?_ | _Model = ?, F1 = ?_ | F1, ROC-AUC |
-| Tomorrow's max temp (regression) | _MAE = ? C_ | _Model = ?, MAE = ? C_ | MAE, RMSE, R2 |
+**Will it rain tomorrow?**
 
-Add your two best figures here, for example:
-`![Feature importance](outputs/05_feature_importance.png)`
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+|---|---|---|---|---|---|
+| Baseline (same as today) | 0.834 | 0.749 | 0.749 | 0.749 | - |
+| Logistic Regression | 0.826 | 0.684 | 0.878 | 0.769 | 0.921 |
+| Random Forest | 0.855 | 0.762 | 0.815 | 0.788 | 0.920 |
+| Gradient Boosting | 0.839 | 0.731 | 0.812 | 0.770 | 0.919 |
 
-## Methodology
-1. **Data:** hourly temperature, humidity, precipitation, pressure, wind, cloud cover, aggregated to daily
-2. **Features:** current values, 1-3 day lags, 3 and 7 day rolling means, pressure change, seasonal sin/cos terms
-3. **Targets:** rain tomorrow (>= 1 mm) and tomorrow's max temperature
-4. **Split:** train 2015-2022, test 2023-2025 (chronological, no shuffling)
-5. **Models:** Logistic/Ridge Regression, Random Forest, Gradient Boosting; compared against a persistence baseline
-6. **Evaluation:** accuracy, precision, recall, F1, ROC-AUC, confusion matrix, time-series cross-validation (classification); MAE, RMSE, R2 (regression)
+**Tomorrow's highest temperature**
 
-## Run it
-**Option A: Google Colab (easiest)**
-1. Open `notebooks/weather_prediction.ipynb` in Colab (upload it, or use "Open in Colab" from GitHub)
-2. Runtime > Run all
+| Model | MAE (°C) | RMSE (°C) | R2 |
+|---|---|---|---|
+| Baseline (same as today) | 0.882 | 1.233 | 0.867 |
+| Ridge Regression | 0.876 | 1.164 | 0.882 |
+| Random Forest | 0.864 | 1.172 | 0.880 |
+| Gradient Boosting | 0.870 | 1.171 | 0.880 |
 
-**Option B: locally**
+What I saw:
+
+- For rain, Random Forest did best. Its F1 score was 0.788, and the baseline was 0.749.
+- Logistic Regression found the most rainy days (recall 0.878), but it also gave more wrong rain alarms (precision 0.684).
+- For temperature, the models were only a little better than the baseline. The average error went from 0.882 °C to 0.864 °C. This is because tomorrow's highest temperature is usually close to today's.
+- The rain baseline is also strong, because rain in Hyderabad comes in spells during the monsoon.
+- I also tested Random Forest on 5 different time periods. The average F1 was 0.771, so the result is not just luck from one test period.
+
+![Feature importance](outputs/05_feature_importance.png)
+![Temperature forecast](outputs/06_temp_forecast.png)
+
+## What I learned
+
+- For weather data, always split by time. A random split gives scores that look better than they really are.
+- Always compare with a simple baseline. Without it, the numbers do not mean much.
+- Accuracy alone is not enough for rain, because there are more dry days than rainy days. F1 and recall tell more.
+- A bigger model is not always much better.
+
+## Limits
+
+- It uses one city only.
+- The data is daily, so short storms are hard to catch.
+- I used one main test period (2023 to 2025).
+- It is not as good as real forecasts from IMD, which use satellites and weather physics.
+
+## What I want to try next
+
+- Add data from nearby cities.
+- Try an LSTM model and compare it with Random Forest.
+- Make a small web app where you enter today's weather and get a prediction.
+
+## How to run
+
+Easiest way: open the notebook in Colab (link at the top) and click Runtime, then Run all. It downloads the data by itself and takes a few minutes.
+
+To run on your own computer:
+
 ```bash
-git clone https://github.com/<your-username>/weather-prediction.git
-cd weather-prediction
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+git clone https://github.com/Nithishh2026/Weather-prediction.git
+cd Weather-prediction
 pip install -r requirements.txt
 jupyter notebook notebooks/weather_prediction.ipynb
 ```
-Run the notebook from inside the `notebooks/` folder or adjust paths; outputs are written to `outputs/` and `models/`.
 
-## Repository structure
-```
-weather-prediction/
-  notebooks/weather_prediction.ipynb   main analysis
-  data/                                cached downloaded data (git-ignored)
-  outputs/                             figures and result tables
-  models/                              saved models (git-ignored)
-  requirements.txt
-  README.md
-  NOTES.md                             study notes
-```
+The notebook makes `data`, `outputs` and `models` folders next to itself when it runs.
 
-## Limitations
-- Single location; no satellite, radar or upper-air data
-- Daily resolution; short-lived convective storms are hard to catch
-- Models learn from past patterns; they are not physics-based forecasts and do not replace IMD or numerical weather prediction
+## Folders
 
-## Future work
-- Add neighbouring-city data and spatial features
-- Try sequence models (LSTM, temporal convolution) and compare with tree models
-- Probability calibration for rain forecasts
-- Compare against Open-Meteo's own forecast model
-- Deploy a small Streamlit app
+- `notebooks` has the main notebook with all the code.
+- `outputs` has the charts and the result tables (CSV files).
+- `requirements.txt` lists the Python libraries I used.
 
-## Data source and licence
-Weather data from Open-Meteo (CC BY 4.0 for non-commercial use; check their terms and cite them). Code released under the MIT licence.
+## Note
+
+Weather data is from Open-Meteo. Please read their terms before using it for anything else. I used an AI assistant to help me while I was learning and writing parts of the code.
